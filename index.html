@@ -3,544 +3,381 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dakhla Camp Kite School - Invoice</title>
+    <title>Dakhla Camp - Invoice Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
-        
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #374151;
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #app-container {
-            display: flex;
-            height: 100%;
+        .invoice-preview {
+            background: white;
             width: 100%;
-        }
-
-        /* --- CONTROLS PANEL --- */
-        #controls-panel {
-            width: 400px;
-            min-width: 400px;
-            background: white;
-            height: 100%;
-            overflow-y: auto;
-            z-index: 50;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
+            max-width: 800px;
             padding: 24px;
-        }
-
-        /* --- PREVIEW PANEL --- */
-        #preview-wrapper {
-            flex-grow: 1;
-            height: 100%;
-            background-color: #525252;
-            overflow: auto; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            padding-top: 80px;
-            padding-bottom: 80px;
-        }
-
-        #zoom-bar {
-            position: fixed;
-            top: 20px;
-            right: 40px;
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 30px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            z-index: 60;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        /* --- DOCUMENT STACK --- */
-        #document-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 40px;
-            align-items: center;
-            transform-origin: top center;
-            transition: transform 0.2s ease-out;
-            padding-bottom: 100px;
-        }
-
-        /* A4 PAGE SETUP - Pixel Perfect */
-        .page {
-            width: 794px;
-            height: 1115px; /* Safety height to prevent blank pages */
-            background: white;
-            padding: 50px; 
             box-sizing: border-box;
-            box-shadow: 0 0 35px rgba(0,0,0,0.6);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
-        /* PDF GENERATION MODE */
-        .printing #document-stack {
-            gap: 0 !important;
-            transform: scale(1) !important;
+        @media (min-width: 768px) {
+            .invoice-preview { padding: 40px 50px; }
         }
-        .printing .page {
-            box-shadow: none !important;
-            margin: 0 !important;
-            page-break-after: always !important;
-            border-radius: 0 !important;
+        .break-inside-avoid {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
-        .printing .page:last-child {
-            page-break-after: avoid !important;
-        }
-
-        /* DOCUMENT COMPONENTS */
-        table { width: 100%; border-collapse: collapse; border: 2px solid black; margin-bottom: 5px; }
-        th { background: black; color: white; text-transform: uppercase; font-size: 11px; padding: 6px; border: 1px solid white; }
-        td { border: 1px solid black; font-size: 11px; padding: 4px 6px; text-align: center; height: 30px; }
-        
-        .box { border: 1px solid black; padding: 10px; }
-        .bar-black { background: black; color: white; padding: 8px 12px; font-weight: 900; font-size: 16px; display: flex; justify-content: space-between; }
-        .bar-grey { background: #f3f4f6; border: 1px solid #ddd; padding: 8px 12px; font-weight: 900; font-size: 16px; display: flex; justify-content: space-between; position: relative; }
-
-        .note-box {
-            width: 100%; border: 1px solid #ccc; padding: 10px; font-size: 11px; min-height: 65px; background: #f9fafb; white-space: pre-wrap;
-        }
-        
-        .page-footer {
-            margin-top: auto;
-            text-align: center;
-            font-size: 10px;
-            color: #9ca3af;
-            padding-top: 10px;
-            position: absolute;
-            bottom: 20px;
-            width: calc(100% - 100px);
-        }
-
-        .editable-input { width: 100%; text-align: center; background: transparent; outline: none; font-weight: bold; }
-        .editable-input:focus { background: #eff6ff; }
-
-        .hidden { display: none !important; }
-        
-        @media (max-width: 1024px) {
-            .app-container { flex-direction: column; }
-            .controls-panel { width: 100%; height: 40%; min-width: 0; }
-            #preview-wrapper { height: 60%; }
-        }
+        @media print { .no-print { display: none !important; } }
+        [v-cloak] { display: none; }
     </style>
 </head>
-<body>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased p-4 md:p-8" id="app" v-cloak>
 
-<div id="app-container">
-    
-    <!-- LEFT PANEL -->
-    <div id="controls-panel">
-        <h1 class="text-2xl font-black mb-6 border-b-4 border-black pb-2 text-gray-800 tracking-tighter">INVOICE CONFIG</h1>
-
-        <!-- Mode -->
-        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <label class="text-xs font-bold text-blue-800 block mb-1">INVOICE TYPE</label>
-            <select id="invMode" onchange="switchMode()" class="w-full p-2 border rounded font-bold text-sm bg-white">
-                <option value="lessons">Kite/Wing Lessons</option>
-                <option value="facility">Facility Service</option>
-            </select>
-        </div>
-
-        <!-- Logo Upload -->
-        <div class="mb-4">
-            <input type="file" id="logoUpload" accept="image/*" class="hidden" onchange="handleLogo(event)">
-            <button onclick="document.getElementById('logoUpload').click()" class="w-full bg-white border-2 border-dashed border-gray-300 hover:border-blue-500 text-gray-500 hover:text-blue-500 py-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
-                <i class="fa fa-cloud-upload"></i> UPLOAD SCHOOL LOGO
-            </button>
-        </div>
-
-        <!-- Inputs -->
-        <div class="space-y-4 mb-6">
-            <div>
-                <label class="text-xs font-bold text-gray-500">CLIENT NAME</label>
-                <input type="text" id="inpName" placeholder="Enter Name" class="w-full p-2 border-2 border-gray-200 rounded-lg font-bold focus:border-black transition-colors" oninput="render()">
-            </div>
-            <div>
-                <label class="text-xs font-bold text-gray-500">INVOICE DATE</label>
-                <input type="date" id="inpDate" class="w-full p-2 border-2 border-gray-200 rounded-lg" onchange="render()">
-            </div>
-            <div>
-                <label class="text-xs font-bold text-gray-500">ADDITIONAL NOTES</label>
-                <textarea id="inpNotes" placeholder="Package details, payment info, etc." class="w-full p-2 border-2 border-gray-200 rounded-lg h-24 text-xs" oninput="render()"></textarea>
-            </div>
-        </div>
-
-        <!-- Add Items -->
-        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
-            <h3 class="text-xs font-black mb-3 uppercase tracking-widest text-gray-500">Add Session / Service</h3>
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400">DATE</label>
-                    <input type="date" id="addDate" class="w-full p-1.5 border rounded text-xs">
-                </div>
-                <div id="grpHours">
-                    <label class="text-[10px] font-bold text-gray-400">HOURS</label>
-                    <input type="number" id="addHours" placeholder="2" step="0.5" class="w-full p-1.5 border rounded text-xs font-bold">
-                </div>
-                <div id="grpPax" class="hidden">
-                    <label class="text-[10px] font-bold text-gray-400">PAX</label>
-                    <input type="number" id="addPax" placeholder="1" value="1" class="w-full p-1.5 border rounded text-xs font-bold">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400">ACTIVITY</label>
-                    <select id="addAct" class="w-full p-1.5 border rounded text-xs">
-                        <option value="Kite">Kite</option>
-                        <option value="Wing">Wing</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400">TYPE</label>
-                    <select id="addType" class="w-full p-1.5 border rounded text-xs">
-                        <option value="Semi-Private">Semi-Private</option>
-                        <option value="Private">Private</option>
-                    </select>
-                </div>
-            </div>
-            <button onclick="addItem()" class="w-full bg-black text-white py-3 rounded-lg text-xs font-black uppercase hover:bg-gray-800 transition transform active:scale-95 shadow-md">
-                ADD LINE ITEM
-            </button>
-        </div>
-
-        <!-- Actions -->
-        <div class="grid grid-cols-2 gap-3 mb-4 mt-auto">
-            <button onclick="resetAll()" class="bg-red-50 text-red-600 border border-red-200 py-3 rounded-lg text-xs font-bold hover:bg-red-100 transition">RESET</button>
-            <button onclick="makePDF()" class="bg-emerald-600 text-white py-3 rounded-lg text-xs font-black shadow-lg hover:bg-emerald-700 flex items-center justify-center gap-2 transition transform active:scale-95">
-                <i class="fa fa-file-pdf"></i> DOWNLOAD PDF
-            </button>
-        </div>
-    </div>
-
-    <!-- RIGHT PANEL -->
-    <div id="preview-wrapper">
-        <!-- Zoom UI -->
-        <div id="zoom-bar">
-            <span class="text-[10px] font-black uppercase tracking-tighter">View Zoom</span>
-            <input type="range" min="0.4" max="1.2" step="0.05" value="0.75" oninput="setZoom(this.value)" class="cursor-pointer w-32 accent-white">
-            <span id="zoomVal" class="text-xs font-mono font-bold w-10">75%</span>
-        </div>
-
-        <div id="document-stack" style="transform: scale(0.75);">
-            <!-- Pages injected here -->
-        </div>
-    </div>
-
-</div>
-
-<script>
-    // --- CONFIGURATION ---
-    const PRICING = {
-        SEMI: { 
-            tiers: { 2: 90, 4: 171, 6: 243, 8: 306, 10: 366, 12: 430 },
-            mad_tiers: { 2: 990, 4: 1881, 6: 2673, 8: 3366, 10: 4026, 12: 4818 },
-            base_12_calc: 438,
-            ext1: { eur: 36, mad: 396 },
-            ext2: { eur: 72, mad: 792 },
-            fac: 10
-        },
-        PRIVATE: { 
-            tiers: { 2: 135, 4: 252, 6: 360, 8: 446, 10: 549, 12: 657 },
-            mad_tiers: { 2: 1485, 4: 2772, 6: 3960, 8: 5104, 10: 6039, 12: 7227 },
-            ext1: { eur: 54, mad: 594 },
-            ext2: { eur: 108, mad: 1188 },
-            fac: 15
-        },
-        FAC_RATE: 11
-    };
-
-    const NOTE_FACILITY = "Facility Service: This includes secure storage for your equipment, the security boat service, and full assistance with launching and landing and supervision.";
-
-    let state = { mode: 'lessons', items: [], logo: null };
-
-    // --- INITIALIZATION ---
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('addDate').value = today;
-    document.getElementById('inpDate').value = today;
-    render();
-
-    // --- CORE FUNCTIONS ---
-    function setZoom(val) {
-        document.getElementById('document-stack').style.transform = `scale(${val})`;
-        document.getElementById('zoomVal').innerText = Math.round(val * 100) + '%';
-    }
-
-    function switchMode() {
-        state.mode = document.getElementById('invMode').value;
-        const isLes = state.mode === 'lessons';
-        document.getElementById('grpHours').classList.toggle('hidden', !isLes);
-        document.getElementById('grpPax').classList.toggle('hidden', isLes);
-        document.getElementById('addAct').disabled = !isLes;
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
         
-        const noteEl = document.getElementById('inpNotes');
-        if(!isLes) noteEl.value = NOTE_FACILITY;
-        else if(noteEl.value === NOTE_FACILITY) noteEl.value = "";
-        
-        if(state.items.length > 0 && confirm("Switching types clears current items. Proceed?")) {
-            state.items = [];
-        } else if (state.items.length > 0) {
-            document.getElementById('invMode').value = (state.mode === 'lessons' ? 'facility' : 'lessons');
-            return;
-        }
-        render();
-    }
-
-    function addItem() {
-        const date = document.getElementById('addDate').value;
-        const type = document.getElementById('addType').value;
-        if(state.mode === 'lessons') {
-            const hrs = parseFloat(document.getElementById('addHours').value);
-            const act = document.getElementById('addAct').value;
-            if(!hrs) return;
-            state.items.push({ date, type, activity: act, qty: hrs });
-        } else {
-            const pax = parseFloat(document.getElementById('addPax').value);
-            if(!pax) return;
-            state.items.push({ date, type, activity: 'Facility', qty: pax });
-        }
-        render();
-    }
-
-    function deleteItem(i) { state.items.splice(i, 1); render(); }
-    function updateItem(i, v) { state.items[i].qty = parseFloat(v); render(); }
-    function resetAll() { state.items = []; document.getElementById('inpName').value = ""; render(); }
-    
-    function handleLogo(e) {
-        if(e.target.files[0]) {
-            const r = new FileReader();
-            r.onload = (ev) => { state.logo = ev.target.result; render(); };
-            r.readAsDataURL(e.target.files[0]);
-        }
-    }
-
-    // --- RENDER ENGINE ---
-    function render() {
-        try {
-            const stack = document.getElementById('document-stack');
-            stack.innerHTML = ""; 
-
-            const name = document.getElementById('inpName').value;
-            const date = document.getElementById('inpDate').value;
-            const note = document.getElementById('inpNotes').value;
-            const totals = calcTotals();
-
-            const MAX_H = 960; 
-            let currentH = 0;
-            let pageNum = 1;
-
-            let pageBody = createPage(1);
-            stack.appendChild(pageBody.parentNode); 
-
-            const header = buildHeader(name, date);
-            pageBody.appendChild(header);
-            currentH += 220; // Increased height for the new large header
-
-            let tbody = buildTableStart(pageBody);
-            currentH += 40;
-
-            if(state.items.length === 0) {
-                tbody.innerHTML += `<tr><td colspan="7" class="text-gray-400 italic py-4">No items added yet...</td></tr>`;
-            }
-
-            state.items.forEach((item, i) => {
-                if(currentH + 35 > MAX_H) {
-                    pageNum++;
-                    pageBody = createPage(pageNum);
-                    stack.appendChild(pageBody.parentNode);
-                    currentH = 0;
-
-                    const cont = document.createElement('div');
-                    cont.className = "mb-4 border-b border-black pb-1 text-xs font-black uppercase";
-                    cont.innerText = `Page ${pageNum} (Continuation)`;
-                    pageBody.appendChild(cont);
-                    currentH += 40;
-
-                    tbody = buildTableStart(pageBody);
-                    currentH += 40;
-                }
-                const tr = document.createElement('tr');
-                tr.innerHTML = buildRow(item, i);
-                tbody.appendChild(tr);
-                currentH += 35;
-            });
-
-            if(note) {
-                if(currentH + 110 > MAX_H) {
-                    pageNum++;
-                    pageBody = createPage(pageNum);
-                    stack.appendChild(pageBody.parentNode);
-                    currentH = 40;
-                }
-                const nDiv = document.createElement('div');
-                nDiv.className = "mt-6 mb-4";
-                nDiv.innerHTML = `<div class="text-[10px] font-black uppercase mb-1 tracking-widest text-gray-500">Package Details / Notes:</div><div class="note-box">${note}</div>`;
-                pageBody.appendChild(nDiv);
-                currentH += 110; 
-            }
-
-            if(currentH + 240 > MAX_H) {
-                pageNum++;
-                pageBody = createPage(pageNum);
-                stack.appendChild(pageBody.parentNode);
-            }
-
-            const tDiv = document.createElement('div');
-            tDiv.innerHTML = buildTotals(totals);
-            pageBody.appendChild(tDiv);
-
-            document.querySelectorAll('.pg-total').forEach(e => e.innerText = pageNum);
-
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    // --- DOM BUILDERS ---
-    function createPage(n) {
-        const p = document.createElement('div');
-        p.className = "page";
-        p.innerHTML = `<div class="page-content flex-grow"></div><div class="page-footer">Page ${n} / <span class="pg-total"></span></div>`;
-        return p.querySelector('.page-content');
-    }
-
-    function buildHeader(n, d) {
-        const logo = state.logo ? `<img src="${state.logo}" class="h-28 object-contain mb-2">` : `<h1 class="text-5xl font-black italic font-serif mb-2 tracking-tighter">Dakhla Camp</h1>`;
-        const div = document.createElement('div');
-        div.innerHTML = `
-            <div class="flex justify-between items-start mb-6 border-b-8 border-black pb-4">
-                <div class="w-1/2">${logo}</div>
-                <div class="w-1/2 text-right">
-                    <h2 class="text-6xl font-black uppercase tracking-tighter leading-none mb-1">INVOICE</h2>
-                    <h3 class="text-xl font-black uppercase tracking-tighter text-gray-800">DAKHLA CAMP KITE SCHOOL</h3>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Kitesurf & Wingfoil Specialist</p>
+        <!-- LEFT COLUMN: Controls -->
+        <div class="lg:w-1/3 bg-white p-6 rounded-xl shadow-md no-print border border-slate-200">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-xl font-bold text-slate-700">{{ t('appTitle') }}</h1>
+                <button @click="toggleLang" class="text-sm px-3 py-1 bg-blue-100 text-blue-700 font-medium rounded-full hover:bg-blue-200 transition">{{ t('switchTo') }}</button>
+            </div>
+            <div class="space-y-4 mb-8 pb-6 border-b border-slate-200">
+                <h2 class="font-semibold text-slate-600 uppercase text-sm tracking-wider">{{ t('clientInfo') }}</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-1 md:col-span-2"><label class="block text-sm text-slate-500 mb-1">{{ t('clientName') }}</label><input type="text" v-model="clientName" class="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border" placeholder="..."></div>
+                    <div><label class="block text-sm text-slate-500 mb-1">{{ t('invoiceNum') }}</label><input type="text" v-model="invoiceNumber" class="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></div>
+                    <div><label class="block text-sm text-slate-500 mb-1">{{ t('invoiceDate') }}</label><input type="date" v-model="invoiceDate" class="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></div>
+                    <div><label class="block text-sm text-slate-500 mb-1">{{ t('conversionRate') }}</label><input type="number" v-model.number="conversionRate" step="0.01" class="w-full border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border font-medium text-blue-700 bg-blue-50"></div>
                 </div>
             </div>
-            <div class="flex items-center text-sm mb-2">
-                <span class="font-black w-24 uppercase tracking-wider text-gray-400">Client:</span>
-                <span class="font-black text-2xl uppercase tracking-tighter flex-grow pl-2">${n || '___________________'}</span>
-            </div>
-            <div class="flex items-center text-sm mb-8">
-                <span class="font-black w-24 uppercase tracking-wider text-gray-400">Date:</span>
-                <span class="font-bold text-lg">${d}</span>
-            </div>
-        `;
-        return div;
-    }
+            <div class="space-y-4">
+                <h2 class="font-semibold text-slate-600 uppercase text-sm tracking-wider">{{ t('addItem') }}</h2>
+                <div><label class="block text-sm text-slate-500 mb-1">{{ t('type') }}</label><select v-model="form.type" class="w-full border-slate-300 rounded-md shadow-sm p-2 border bg-slate-50"><option value="lesson">{{ t('lesson') }}</option><option value="rental">{{ t('rental') }}</option><option value="storage">{{ t('storage') }}</option><option value="custom">{{ t('custom') }}</option></select></div>
 
-    function buildTableStart(p) {
-        const t = document.createElement('table');
-        const h = state.mode === 'lessons' 
-            ? `<tr><th width="20%">Date</th><th width="10%">Wing</th><th width="10%">Kite</th><th width="15%">Private</th><th width="15%">Semi</th><th width="15%">Hrs</th><th width="15%" data-html2canvas-ignore="true">Edit</th></tr>`
-            : `<tr><th width="25%">Date</th><th width="35%">Service</th><th width="15%">Type</th><th width="10%">Pax</th><th width="10%">Price</th><th width="5%" data-html2canvas-ignore="true"></th></tr>`;
-        t.innerHTML = `<thead>${h}</thead><tbody></tbody>`;
-        p.appendChild(t);
-        return t.querySelector('tbody');
-    }
-
-    function buildRow(item, i) {
-        const del = `<button onclick="deleteItem(${i})" class="text-red-500 hover:text-red-700 ml-2"><i class="fa fa-trash"></i></button>`;
-        const inp = `<input type="number" step="0.5" value="${item.qty}" onchange="updateItem(${i}, this.value)" class="editable-input">`;
-        if(state.mode === 'lessons') {
-            return `<td>${item.date}</td><td>${item.activity==='Wing'?'✔':''}</td><td>${item.activity==='Kite'?'✔':''}</td><td>${item.type==='Private'?'✔':''}</td><td>${item.type==='Semi-Private'?'✔':''}</td><td>${inp}</td><td data-html2canvas-ignore="true">${del}</td>`;
-        } else {
-            const rate = item.type === 'Semi-Private' ? PRICING.SEMI.fac : PRICING.PRIVATE.fac;
-            return `<td>${item.date}</td><td>Facility Service</td><td>${item.type}</td><td>${inp}</td><td>${rate*item.qty}€</td><td data-html2canvas-ignore="true">${del}</td>`;
-        }
-    }
-
-    function buildTotals(t) {
-        return `
-            <div class="flex justify-end mt-4">
-                <div class="w-2/3">
-                    <div class="flex gap-4 mb-3">
-                        <div class="w-1/2 box"><div class="text-[10px] font-black uppercase border-b border-black mb-1">Semi-Private</div><div class="flex justify-between text-xs"><span>Total:</span><b>${t.sQty}${state.mode==='lessons'?'h':' Pax'}</b></div><div class="flex justify-between text-base font-black mt-1"><span>Price:</span><span>${t.sEur}€</span></div></div>
-                        <div class="w-1/2 box"><div class="text-[10px] font-black uppercase border-b border-black mb-1">Private</div><div class="flex justify-between text-xs"><span>Total:</span><b>${t.pQty}${state.mode==='lessons'?'h':' Pax'}</b></div><div class="flex justify-between text-base font-black mt-1"><span>Price:</span><span>${t.pEur}€</span></div></div>
+                <div v-if="form.type === 'lesson'" class="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2">
+                            <label class="text-xs text-slate-500 font-semibold">{{ t('discipline') }}</label>
+                            <select v-model="form.discipline" class="w-full text-sm border p-2 rounded bg-white font-medium">
+                                <option value="kitesurf">{{ t('kitesurf') }}</option>
+                                <option value="wingfoil">{{ t('wingfoil') }}</option>
+                                <option value="kitefoil">{{ t('kitefoil') }}</option>
+                                <option value="surf">{{ t('surfLesson') }}</option>
+                            </select>
+                        </div>
+                        <div><label class="text-xs text-slate-500">{{ t('level') }}</label><select v-model="form.level" class="w-full text-sm border p-2 rounded"><option value="beginner">{{ t('beginner') }}</option><option value="intermediate">{{ t('intermediate') }}</option></select></div>
+                        <div><label class="text-xs text-slate-500">{{ t('equipment') }}</label><select v-model="form.equip" class="w-full text-sm border p-2 rounded"><option value="included">{{ t('included') }}</option><option value="without">{{ t('without') }}</option></select></div>
+                        <div><label class="text-xs text-slate-500">{{ t('format') }}</label><select v-model="form.format" class="w-full text-sm border p-2 rounded"><option value="semi-private">{{ t('semiPrivate') }}</option><option value="private">{{ t('private') }}</option></select></div>
+                        <div><label class="text-xs text-slate-500">{{ t('duration') }}</label><select v-model="form.duration" class="w-full text-sm border p-2 rounded"><option v-for="opt in lessonDurations" :value="opt">{{ t(opt) }}</option></select></div>
                     </div>
-                    <div class="bar-black"><span>TOTAL EURO</span><span class="text-2xl">${t.totEur}€</span></div>
-                    <div class="bar-grey mt-2"><span>TOTAL MAD</span><div class="text-right"><div class="text-[9px] absolute -top-5 right-0 text-black font-black uppercase tracking-widest">Client Signature</div><span class="text-2xl">${t.totMad} MAD</span></div></div>
+                </div>
+
+                <div v-if="form.type === 'rental'" class="space-y-3 p-3 bg-amber-50 rounded-lg border border-amber-100"><div><label class="text-xs text-slate-500">{{ t('rentalType') }}</label><select v-model="form.rentalType" class="w-full text-sm border p-2 rounded"><option v-for="key in Object.keys(pricing.rental)" :value="key">{{ t(key) }}</option></select></div><div><label class="text-xs text-slate-500">{{ t('rentalFormat') }}</label><select v-model="form.rentalFormat" class="w-full text-sm border p-2 rounded"><option value="half_day">{{ t('halfDay') }}</option><option value="full_day">{{ t('fullDay') }}</option></select></div></div>
+                <div v-if="form.type === 'storage'" class="space-y-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100"><div><label class="text-xs text-slate-500">{{ t('storageDays') }}</label><select v-model="form.storageDays" class="w-full text-sm border p-2 rounded"><option v-for="day in 14" :value="day">{{ day }} {{ t('days') }}</option></select></div></div>
+                <div v-if="form.type === 'custom'" class="space-y-3 p-3 bg-slate-50 rounded-lg border border-slate-200"><div><label class="text-xs text-slate-500">{{ t('customDesc') }}</label><input type="text" v-model="form.customName" class="w-full text-sm border p-2 rounded"></div></div>
+                <div class="grid grid-cols-2 gap-4 pt-2">
+                    <div><label class="text-xs text-slate-500">{{ t('dateFrom') }}</label><input type="date" v-model="form.dateFrom" class="w-full text-sm border p-2 rounded"></div>
+                    <div><label class="text-xs text-slate-500">{{ t('dateTo') }}</label><input type="date" v-model="form.dateTo" class="w-full text-sm border p-2 rounded"></div>
+                    <div><label class="text-xs font-bold" :class="form.type === 'lesson' ? 'text-slate-400' : 'text-blue-600'">{{ t('qty') }}</label><input type="number" v-model.number="form.qty" min="1" :disabled="form.type === 'lesson'" class="w-full text-sm border p-2 rounded" :class="form.type === 'lesson' ? 'bg-slate-100' : 'bg-blue-50'"></div>
+                    <div><label class="text-xs font-bold text-blue-600">{{ t('unitPrice') }} (€)</label><input type="number" v-model.number="form.unitPrice" class="w-full text-sm border p-2 rounded bg-blue-50"></div>
+                </div>
+                <button @click="addItem" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow transition">{{ t('addToList') }}</button>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Invoice Preview -->
+        <div class="lg:w-2/3 flex flex-col gap-4 min-w-0 w-full">
+            <div id="invoice-capture" class="invoice-preview relative text-black">
+                
+                <!-- Header -->
+                <div class="break-inside-avoid flex flex-col md:flex-row justify-between items-start border-b-4 border-black pb-6 mb-8 gap-6">
+                    <div>
+                        <h1 class="text-4xl font-black text-black uppercase tracking-tighter leading-none">DAKHLA CAMP</h1>
+                        <p class="text-black font-bold uppercase tracking-widest mt-1 text-sm">Kitesurf & Wingfoil Center</p>
+                        <p class="text-xs text-gray-700 mt-1 font-medium">Dakhla, Morocco</p>
+                        <div class="mt-8">
+                            <h3 class="font-bold text-gray-600 mb-1 uppercase tracking-wider text-xs">{{ t('billTo') }}</h3>
+                            <p class="text-xl font-bold text-black">{{ clientName || '_________________________' }}</p>
+                        </div>
+                    </div>
+                    <div class="md:text-right">
+                        <h2 class="text-3xl font-light text-gray-600 uppercase tracking-widest mb-4">{{ t('invoice') }}</h2>
+                        <div class="text-sm space-y-1 text-black p-3 border border-black min-w-[200px]">
+                            <p class="flex justify-between md:justify-end gap-4"><span class="font-bold">{{ t('date') }}:</span> <span>{{ formatDate(invoiceDate) }}</span></p>
+                            <p class="flex justify-between md:justify-end gap-4"><span class="font-bold">N°:</span> <span>{{ invoiceNumber }}</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="w-full">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-black text-white text-xs uppercase tracking-wider break-inside-avoid">
+                                <th class="p-3">{{ t('itemDesc') }}</th>
+                                <th class="p-3">{{ t('dates') }}</th>
+                                <th class="p-3 text-center">{{ t('qty') }}</th>
+                                <th class="p-3 text-right">{{ t('unitPrice') }}</th>
+                                <th class="p-3 text-right">{{ t('total') }}</th>
+                                <th class="p-3 no-print w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="items.length === 0"><td colspan="6" class="p-8 text-center italic border-b">{{ t('emptyInvoice') }}</td></tr>
+                            <tr v-for="(item, index) in items" :key="index" class="border-b border-gray-300 break-inside-avoid">
+                                <td class="p-3 py-4 text-sm text-black">
+                                    <span class="font-bold block">{{ buildItemTitle(item) }}</span>
+                                    <span class="text-xs text-gray-700">{{ buildItemDescription(item) }}</span>
+                                </td>
+                                <td class="p-3 text-sm text-gray-800"><div v-if="item.dateFrom || item.dateTo"><span>{{ item.dateFrom ? formatDate(item.dateFrom) : '' }}</span><span class="block text-xs" v-if="item.dateFrom && item.dateTo">→ {{ formatDate(item.dateTo) }}</span></div><span v-else>-</span></td>
+                                <td class="p-3 text-sm text-center font-bold">{{ item.qty }}</td>
+                                <td class="p-3 text-sm text-right">{{ formatCurrency(item.unitPrice) }}</td>
+                                <td class="p-3 text-sm text-right font-bold">{{ formatCurrency(item.total) }}</td>
+                                <td class="p-3 text-right no-print"><button @click="removeItem(index)" class="text-red-500 font-bold hover:text-red-700">✕</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totals & Footer -->
+                <div class="mt-8 break-inside-avoid">
+                    <div class="flex justify-end">
+                        <div class="w-1/2 md:w-1/3 space-y-2">
+                            <div class="flex justify-between text-sm"><span>{{ t('subtotal') }}:</span><span class="font-bold">{{ formatCurrency(subtotal) }}</span></div>
+                            <div class="flex justify-between text-xl font-bold border-t-2 border-black pt-1"><span>{{ t('total') }}:</span><span>{{ formatCurrency(grandTotal) }}</span></div>
+                            <div class="flex justify-between text-sm font-bold border-2 border-black p-2 bg-gray-100 mt-2"><span>Total (MAD):</span><span>{{ formatMAD(grandTotal * conversionRate) }}</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-12 pt-4 border-t border-gray-200 text-center text-xs text-gray-500 italic">
+                        <p>{{ t('footerMsg') }}</p>
+                        <p>Dakhla Camp | contact@dakhlacamp.com</p>
+                    </div>
                 </div>
             </div>
-        `;
-    }
 
-    // --- MATH ---
-    function calcTotals() {
-        let sQty=0, pQty=0, sEur=0, pEur=0, sMad=0, pMad=0;
-        state.items.forEach(i => {
-            if(i.type === 'Semi-Private') sQty += i.qty;
-            else pQty += i.qty;
-        });
+            <div class="flex justify-end mt-4 no-print">
+                <button @click="generatePDF" :disabled="isGenerating" class="bg-black text-white font-bold py-3 px-8 rounded shadow hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-wait">
+                    {{ isGenerating ? '⏳...' : t('generatePdf') }}
+                </button>
+            </div>
+        </div>
+    </div>
 
-        if(state.mode === 'lessons') {
-            const s = getLessonPrice(sQty, PRICING.SEMI);
-            sEur = s.e; sMad = s.m;
-            const p = getLessonPrice(pQty, PRICING.PRIVATE);
-            pEur = p.e; pMad = p.m;
-        } else {
-            sEur = sQty * PRICING.SEMI.fac;
-            sMad = sEur * PRICING.FAC_RATE;
-            pEur = pQty * PRICING.PRIVATE.fac;
-            pMad = pEur * PRICING.FAC_RATE;
-        }
-        return { sQty, pQty, sEur: sEur.toFixed(0), pEur: pEur.toFixed(0), totEur: (sEur+pEur).toFixed(0), totMad: (sMad+pMad).toFixed(0) };
-    }
+    <script>
+        const { createApp, ref, computed, watch } = Vue;
 
-    function getLessonPrice(qty, data) {
-        if(qty <= 0) return { e: 0, m: 0 };
-        if(Number.isInteger(qty) && data.tiers[qty]) {
-            if(qty === 12 && data.base_12_calc) return { e: data.tiers[12], m: data.mad_tiers[12] };
-            return { e: data.tiers[qty] || data.eur_table[qty], m: data.mad_tiers[qty] };
-        }
-        if(qty > 12) {
-            const baseE = data.base_12_calc || data.tiers[12];
-            const baseM = data.mad_tiers[12];
-            const rem = qty - 12;
-            const pairs = Math.floor(rem / 2);
-            const singles = rem % 2;
-            return { e: baseE + (pairs * data.ext2.eur) + (singles * data.ext1.eur), m: baseM + (pairs * data.ext2.mad) + (singles * data.ext1.mad) };
-        }
-        const floor = Math.floor(qty / 2) * 2;
-        const rem = qty - floor;
-        let bE = 0, bM = 0;
-        if(floor > 0) { bE = data.tiers[floor]; bM = data.mad_tiers[floor]; }
-        return { e: bE + (rem * data.ext1.eur), m: bM + (rem * data.ext1.mad) };
-    }
+        const pricing = {
+            lesson: {
+                beginner_included_semi_private: { '2h': 75, '4h': 155, '6h': 225, '8h': 298, '10h': 370, '12h': 425, 'extra_1h': 30, 'extra_2h': 60 },
+                beginner_included_private: { '2h': 115, '4h': 235, '6h': 355, '8h': 465, '10h': 545, '12h': 645, 'extra_1h': 46, 'extra_2h': 92 },
+                intermediate_included_semi_private: { '2h': 86, '4h': 178, '6h': 259, '8h': 342, '10h': 426, '12h': 489, 'extra_1h': 35, 'extra_2h': 69 },
+                intermediate_included_private: { '2h': 132, '4h': 270, '6h': 408, '8h': 535, '10h': 627, '12h': 742, 'extra_1h': 53, 'extra_2h': 106 },
+                beginner_without_semi_private: { '2h': 53, '4h': 109, '6h': 158, '8h': 208, '10h': 259, '12h': 298, 'extra_1h': 21, 'extra_2h': 42 },
+                beginner_without_private: { '2h': 81, '4h': 165, '6h': 249, '8h': 326, '10h': 382, '12h': 452, 'extra_1h': 32, 'extra_2h': 64 },
+                intermediate_without_semi_private: { '2h': 60, '4h': 125, '6h': 181, '8h': 239, '10h': 298, '12h': 342, 'extra_1h': 24, 'extra_2h': 48 },
+                intermediate_without_private: { '2h': 93, '4h': 189, '6h': 286, '8h': 374, '10h': 439, '12h': 519, 'extra_1h': 37, 'extra_2h': 74 },
+            },
+            rental: {
+                full_kite: { half_day: 60, full_day: 80 }, full_wing: { half_day: 70, full_day: 95 },
+                kite_bar: { half_day: 55, full_day: 60 }, twintip: { half_day: 25, full_day: 30 },
+                wing: { half_day: 50, full_day: 60 }, wing_board: { half_day: 40, full_day: 55 },
+                surf: { half_day: 30, full_day: 45 }, harness: { half_day: 10, full_day: 15 },
+                vest: { half_day: 5, full_day: 10 }, helmet: { half_day: 5, full_day: 10 }, leash: { half_day: 5, full_day: 5 }
+            },
+            storage: { 1:10, 2:20, 3:30, 4:40, 5:50, 6:60, 7:70, 8:78, 9:86, 10:94, 11:102, 12:110, 13:118, 14:126 }
+        };
 
-    function makePDF() {
-        const stack = document.getElementById('document-stack');
-        const name = document.getElementById('inpName').value || 'Invoice';
-        document.body.classList.add('printing');
-        window.scrollTo(0,0);
-        html2pdf().set({
-            margin: 0,
-            filename: `DakhlaCamp_${name}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(stack).save().then(() => document.body.classList.remove('printing'));
-    }
-</script>
+        const i18n = {
+            en: {
+                appTitle: 'Invoice Generator', switchTo: 'Passer en Français', clientInfo: 'Client Info', clientName: 'Client Name',
+                invoiceNum: 'N°', invoiceDate: 'Date', conversionRate: 'MAD Rate', addItem: 'Add Service', type: 'Type',
+                lesson: 'Lesson', rental: 'Rental', storage: 'Storage', custom: 'Custom', level: 'Level', beginner: 'Beginner', intermediate: 'Intermediate',
+                equipment: 'Equipment', included: 'Included', without: 'No Equipment', format: 'Format', semiPrivate: 'Semi-private', private: 'Private',
+                duration: 'Duration', rentalType: 'Equipment', rentalFormat: 'Period', halfDay: 'Half Day', fullDay: 'Full Day',
+                storageDays: 'Days', days: 'Days', customDesc: 'Description', unitPrice: 'Unit Price', qty: 'Qty',
+                dateFrom: 'From', dateTo: 'To', addToList: 'Add to Invoice', invoice: 'INVOICE', date: 'Date', billTo: 'Bill To',
+                itemDesc: 'Description', total: 'Total', subtotal: 'Subtotal', emptyInvoice: 'No items.', dates: 'Dates',
+                generatePdf: 'Download PDF', footerMsg: 'Thank you for choosing Dakhla Camp!',
+                full_kite: 'Kitesurf Set', full_wing: 'Wingfoil Set', kite_bar: 'Kite & Bar', twintip: 'Twintip Board',
+                wing: 'Wing', wing_board: 'Wingfoil Board', surf: 'Surfboard', harness: 'Harness', vest: 'Vest',
+                helmet: 'Helmet', leash: 'Leash', half_day: 'Half Day', full_day: 'Full Day',
+                '2h':'2h','4h':'4h','6h':'6h','8h':'8h','10h':'10h','12h':'12h','extra_1h':'+1h','extra_2h':'+2h',
+                discipline: 'Discipline',
+                kitesurf: 'Kitesurf',
+                wingfoil: 'Wingfoil',
+                kitefoil: 'Kitefoil',
+                surfLesson: 'Surf',
+                lessonTitle_kitesurf: 'Kitesurf Lesson',
+                lessonTitle_wingfoil: 'Wingfoil Lesson',
+                lessonTitle_kitefoil: 'Kitefoil Lesson',
+                lessonTitle_surf: 'Surf Lesson',
+                equip_included: 'Equipment Included',
+                equip_without: 'Without Equipment',
+            },
+            fr: {
+                appTitle: 'Facturation', switchTo: 'English', clientInfo: 'Client', clientName: 'Nom', invoiceNum: 'N°', invoiceDate: 'Date',
+                conversionRate: 'Taux MAD', addItem: 'Ajouter', type: 'Type', lesson: 'Cours', rental: 'Location', storage: 'Stockage',
+                custom: 'Divers', level: 'Niveau', beginner: 'Débutant', intermediate: 'Intermédiaire', equipment: 'Matériel',
+                included: 'Inclus', without: 'Sans Matériel', format: 'Format', semiPrivate: 'Semi-privé', private: 'Privé',
+                duration: 'Durée', rentalType: 'Équipement', rentalFormat: 'Durée', halfDay: 'Demi-journée', fullDay: 'Journée',
+                storageDays: 'Jours', days: 'Jours', customDesc: 'Description', unitPrice: 'Prix Unit.', qty: 'Qté',
+                dateFrom: 'Début', dateTo: 'Fin', addToList: 'Ajouter', invoice: 'FACTURE', date: 'Date', billTo: 'Facturé à',
+                itemDesc: 'Description', total: 'Total', subtotal: 'Sous-total', emptyInvoice: 'Vide.', dates: 'Dates',
+                generatePdf: 'Télécharger PDF', footerMsg: 'Merci d\'avoir choisi Dakhla Camp !',
+                full_kite: 'Set Kitesurf', full_wing: 'Set Wingfoil', kite_bar: 'Ailes & Barres', twintip: 'Planches Twintip', wing: 'Ailes Wing',
+                wing_board: 'Planches Wing', surf: 'Surf', harness: 'Harnais', vest: 'Gilet', helmet: 'Casque', leash: 'Leash',
+                half_day: 'Demi-journée', full_day: 'Journée',
+                '2h':'2h','4h':'4h','6h':'6h','8h':'8h','10h':'10h','12h':'12h','extra_1h':'+1h','extra_2h':'+2h',
+                discipline: 'Discipline',
+                kitesurf: 'Kitesurf',
+                wingfoil: 'Wingfoil',
+                kitefoil: 'Kitefoil',
+                surfLesson: 'Surf',
+                lessonTitle_kitesurf: 'Cours de Kitesurf',
+                lessonTitle_wingfoil: 'Cours de Wingfoil',
+                lessonTitle_kitefoil: 'Cours de Kitefoil',
+                lessonTitle_surf: 'Cours de Surf',
+                equip_included: 'Équipement Inclus',
+                equip_without: 'Sans Équipement',
+            }
+        };
+
+        createApp({
+            setup() {
+                const lang = ref('en');
+                const isGenerating = ref(false);
+                const clientName = ref('');
+                const invoiceDate = ref(new Date().toISOString().split('T')[0]);
+                const invoiceNumber = ref(`INV-${Date.now().toString().slice(-6)}`);
+                const conversionRate = ref(10.7);
+                const items = ref([]);
+                const lessonDurations = ['2h','4h','6h','8h','10h','12h','extra_1h','extra_2h'];
+
+                const form = ref({
+                    type: 'lesson', discipline: 'kitesurf', level: 'beginner', equip: 'included', format: 'semi-private',
+                    duration: '2h', rentalType: 'full_kite', rentalFormat: 'half_day', storageDays: 1,
+                    customName: '', unitPrice: 75, dateFrom: '', dateTo: '', qty: 1
+                });
+
+                const t = (k) => i18n[lang.value][k] || k;
+                const toggleLang = () => lang.value = lang.value === 'en' ? 'fr' : 'en';
+
+                const updatePrice = () => {
+                    const f = form.value;
+                    if (f.type === 'storage') f.unitPrice = pricing.storage[f.storageDays] || 0;
+                    else if (f.type === 'rental') f.unitPrice = pricing.rental[f.rentalType]?.[f.rentalFormat] || 0;
+                    else if (f.type === 'lesson') {
+                        const key = `${f.level}_${f.equip}_${f.format.replace('-','_')}`;
+                        f.unitPrice = pricing.lesson[key]?.[f.duration] || 0;
+                    }
+                };
+
+                watch(() => [form.value.type, form.value.level, form.value.equip, form.value.format, form.value.duration, form.value.rentalType, form.value.rentalFormat, form.value.storageDays, form.value.discipline], () => {
+                    if(form.value.type === 'lesson') form.value.qty = 1;
+                    updatePrice();
+                });
+
+                const addItem = () => {
+                    items.value.push({ ...form.value, total: form.value.unitPrice * form.value.qty });
+                    form.value.dateFrom = ''; form.value.dateTo = ''; form.value.customName = '';
+                };
+                const removeItem = (i) => items.value.splice(i, 1);
+
+                const buildItemTitle = (i) => {
+                    if (i.type === 'lesson') return t('lessonTitle_' + i.discipline);
+                    return t(i.type);
+                };
+
+                const buildItemDescription = (i) => {
+                    if (i.type === 'custom') return i.customName;
+                    if (i.type === 'storage') return `${i.storageDays} ${t('days')}`;
+                    if (i.type === 'rental') return `${t(i.rentalType)} (${t(i.rentalFormat)})`;
+                    return `${t(i.level)} | ${t('equip_' + i.equip)} | ${t(i.format)} | ${t(i.duration)}`;
+                };
+
+                const subtotal = computed(() => items.value.reduce((a, b) => a + b.total, 0));
+                const grandTotal = computed(() => subtotal.value);
+                const formatCurrency = (v) => new Intl.NumberFormat(lang.value==='fr'?'fr-FR':'en-US',{style:'currency',currency:'EUR'}).format(v);
+                const formatMAD = (v) => new Intl.NumberFormat(lang.value==='fr'?'fr-FR':'en-US',{style:'currency',currency:'MAD'}).format(v);
+                const formatDate = (d) => d ? new Date(d).toLocaleDateString(lang.value==='fr'?'fr-FR':'en-US',{day:'numeric',month:'short',year:'numeric'}) : '';
+
+                const PDF_MARGIN = [10, 10, 10, 10];
+                const SOURCE_WIDTH = 800;
+
+                function getPageHeightPx() {
+                    const usableW = 210 - PDF_MARGIN[1] - PDF_MARGIN[3];
+                    const usableH = 297 - PDF_MARGIN[0] - PDF_MARGIN[2];
+                    const pxPerMm = usableW / SOURCE_WIDTH;
+                    return Math.floor(usableH / pxPerMm);
+                }
+
+                function fixPageBreaks(container) {
+                    const PAGE_H = getPageHeightPx();
+                    let safety = 0;
+                    while (safety < 100) {
+                        safety++;
+                        const containerRect = container.getBoundingClientRect();
+                        const elements = container.querySelectorAll('tr, .break-inside-avoid');
+                        let fixed = false;
+                        for (const el of elements) {
+                            if (el.dataset.pbSpacer) continue;
+                            const rect = el.getBoundingClientRect();
+                            const top = rect.top - containerRect.top;
+                            const bot = top + rect.height;
+                            if (rect.height >= PAGE_H) continue;
+                            const pageBottom = (Math.floor(top / PAGE_H) + 1) * PAGE_H;
+                            if (top < pageBottom && bot > pageBottom) {
+                                const gap = Math.ceil(pageBottom - top) + 4;
+                                if (el.tagName === 'TR') {
+                                    const spacerRow = document.createElement('tr');
+                                    const spacerCell = document.createElement('td');
+                                    spacerCell.setAttribute('colspan', '99');
+                                    spacerCell.style.cssText = `height:${gap}px;padding:0;border:none;line-height:0;font-size:0;`;
+                                    spacerRow.style.cssText = 'border:none;';
+                                    spacerRow.dataset.pbSpacer = '1';
+                                    spacerRow.appendChild(spacerCell);
+                                    el.parentNode.insertBefore(spacerRow, el);
+                                } else {
+                                    const spacer = document.createElement('div');
+                                    spacer.style.cssText = `height:${gap}px;`;
+                                    spacer.dataset.pbSpacer = '1';
+                                    el.parentNode.insertBefore(spacer, el);
+                                }
+                                fixed = true;
+                                break;
+                            }
+                        }
+                        if (!fixed) break;
+                    }
+                }
+
+                const generatePDF = async () => {
+                    if (isGenerating.value) return;
+                    isGenerating.value = true;
+                    const source = document.getElementById('invoice-capture');
+                    const clone = source.cloneNode(true);
+                    clone.querySelectorAll('.no-print').forEach(el => el.remove());
+                    const wrapper = document.createElement('div');
+                    wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;z-index:-1;';
+                    clone.style.cssText = 'width:800px;min-width:800px;max-width:800px;padding:40px 50px;background:white;box-shadow:none;margin:0;box-sizing:border-box;';
+                    wrapper.appendChild(clone);
+                    document.body.appendChild(wrapper);
+                    await new Promise(r => setTimeout(r, 300));
+                    fixPageBreaks(clone);
+                    await new Promise(r => setTimeout(r, 100));
+                    const opt = {
+                        margin: PDF_MARGIN,
+                        filename: `DakhlaCamp_${invoiceNumber.value}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, width: SOURCE_WIDTH, scrollX: 0, scrollY: 0 },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak: { mode: [] }
+                    };
+                    try { await html2pdf().set(opt).from(clone).save(); }
+                    catch (e) { console.error('PDF error:', e); }
+                    finally { document.body.removeChild(wrapper); isGenerating.value = false; }
+                };
+
+                return { lang, isGenerating, clientName, invoiceDate, invoiceNumber, conversionRate, items, form, lessonDurations, pricing, t, toggleLang, addItem, removeItem, buildItemTitle, buildItemDescription, subtotal, grandTotal, formatCurrency, formatMAD, formatDate, generatePDF };
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
