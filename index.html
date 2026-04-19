@@ -32,14 +32,12 @@
 
     <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
         
-        <!-- LEFT COLUMN: Controls -->
         <div class="lg:w-1/3 bg-white p-6 rounded-xl shadow-md no-print border border-slate-200">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-xl font-bold text-slate-700">{{ t('appTitle') }}</h1>
                 <button @click="toggleLang" class="text-sm px-3 py-1 bg-blue-100 text-blue-700 font-medium rounded-full hover:bg-blue-200 transition">{{ t('switchTo') }}</button>
             </div>
             
-            <!-- Document Type Selection -->
             <div class="mb-6 pb-4 border-b border-slate-200">
                 <h2 class="font-semibold text-slate-600 uppercase text-sm tracking-wider mb-3">{{ t('documentType') }}</h2>
                 <div class="grid grid-cols-2 gap-3">
@@ -63,7 +61,27 @@
             </div>
             <div class="space-y-4">
                 <h2 class="font-semibold text-slate-600 uppercase text-sm tracking-wider">{{ t('addItem') }}</h2>
-                <div><label class="block text-sm text-slate-500 mb-1">{{ t('type') }}</label><select v-model="form.type" class="w-full border-slate-300 rounded-md shadow-sm p-2 border bg-slate-50"><option value="lesson">{{ t('lesson') }}</option><option value="rental">{{ t('rental') }}</option><option value="storage">{{ t('storage') }}</option><option value="custom">{{ t('custom') }}</option></select></div>
+                <div>
+                    <label class="block text-sm text-slate-500 mb-1">{{ t('type') }}</label>
+                    <select v-model="form.type" class="w-full border-slate-300 rounded-md shadow-sm p-2 border bg-slate-50">
+                        <option value="package">{{ t('package') }}</option>
+                        <option value="lesson">{{ t('lesson') }}</option>
+                        <option value="rental">{{ t('rental') }}</option>
+                        <option value="storage">{{ t('storage') }}</option>
+                        <option value="custom">{{ t('custom') }}</option>
+                    </select>
+                </div>
+
+                <div v-if="form.type === 'package'" class="space-y-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <div>
+                        <label class="text-xs text-slate-500">{{ t('packageType') }}</label>
+                        <select v-model="form.packageType" class="w-full text-sm border p-2 rounded bg-white">
+                            <option value="chill">{{ t('pkg_chill') }}</option>
+                            <option value="intense">{{ t('pkg_intense') }}</option>
+                        </select>
+                    </div>
+                    <p class="text-xs text-purple-700 font-medium italic mt-2">{{ t('desc_pkg_' + form.packageType) }}</p>
+                </div>
 
                 <div v-if="form.type === 'lesson'" class="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
                     <div class="grid grid-cols-2 gap-3">
@@ -94,16 +112,13 @@
                 </div>
                 <button @click="addItem" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow transition">{{ t('addToList') }}</button>
                 
-                <!-- Clear Everything Button -->
                 <button @click="clearAll" class="w-full mt-2 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-lg shadow transition">{{ t('clearAll') }}</button>
             </div>
         </div>
 
-        <!-- RIGHT COLUMN: Invoice Preview -->
         <div class="lg:w-2/3 flex flex-col gap-4 min-w-0 w-full">
             <div id="invoice-capture" class="invoice-preview relative text-black">
                 
-                <!-- Header -->
                 <div class="break-inside-avoid flex flex-col md:flex-row justify-between items-start border-b-4 border-black pb-6 mb-8 gap-6">
                     <div>
                         <h1 class="text-4xl font-black text-black uppercase tracking-tighter leading-none">DAKHLA CAMP</h1>
@@ -123,7 +138,6 @@
                     </div>
                 </div>
 
-                <!-- Table -->
                 <div class="w-full">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -153,7 +167,6 @@
                     </table>
                 </div>
 
-                <!-- Totals & Footer -->
                 <div class="mt-8 break-inside-avoid">
                     <div class="flex justify-end">
                         <div class="w-1/2 md:w-1/3 space-y-2">
@@ -181,6 +194,11 @@
         const { createApp, ref, computed, watch } = Vue;
 
         const pricing = {
+            // ADDED: Package pricing
+            package: {
+                chill: 929,
+                intense: 1317
+            },
             lesson: {
                 beginner_included_semi_private: { '2h': 75, '4h': 155, '6h': 225, '8h': 298, '10h': 370, '12h': 425, 'extra_1h': 30, 'extra_2h': 60 },
                 beginner_included_private: { '2h': 115, '4h': 235, '6h': 355, '8h': 465, '10h': 545, '12h': 645, 'extra_1h': 46, 'extra_2h': 92 },
@@ -229,6 +247,12 @@
                 lessonTitle_surf: 'Surf Lesson',
                 equip_included: 'Equipment Included',
                 equip_without: 'Without Equipment',
+                // ADDED: Package Translations EN
+                package: 'Package', packageType: 'Package Option',
+                pkg_chill: 'Accommodation + Kitesurf - Chill',
+                pkg_intense: 'Accommodation + Kitesurf - Intense',
+                desc_pkg_chill: '7 Nights, Full Board, premium kitesurf equipment, 10h private coaching.',
+                desc_pkg_intense: '7 Nights, Full Board, premium kitesurf equipment, 20h private coaching.',
             },
             fr: {
                 appTitle: 'Facturation', switchTo: 'English', documentType: 'Type de Document',
@@ -257,13 +281,19 @@
                 lessonTitle_surf: 'Cours de Surf',
                 equip_included: 'Équipement Inclus',
                 equip_without: 'Sans Équipement',
+                // ADDED: Package Translations FR
+                package: 'Pack', packageType: 'Option du Pack',
+                pkg_chill: 'Hébergement + Kitesurf - Chill',
+                pkg_intense: 'Hébergement + Kitesurf - Intense',
+                desc_pkg_chill: '7 Nuits, Pension complète, matériel premium, 10h coaching privé.',
+                desc_pkg_intense: '7 Nuits, Pension complète, matériel premium, 20h coaching privé.',
             }
         };
 
         createApp({
             setup() {
                 const lang = ref('en');
-                const docType = ref('invoice'); // NEW: invoice or quote
+                const docType = ref('invoice'); 
                 const isGenerating = ref(false);
                 const clientName = ref('');
                 const invoiceDate = ref(new Date().toISOString().split('T')[0]);
@@ -273,15 +303,16 @@
                 const lessonDurations = ['2h','4h','6h','8h','10h','12h','extra_1h','extra_2h'];
 
                 const form = ref({
-                    type: 'lesson', discipline: 'kitesurf', level: 'beginner', equip: 'included', format: 'semi-private',
+                    type: 'package', // Changed default to package to show it off
+                    discipline: 'kitesurf', level: 'beginner', equip: 'included', format: 'semi-private',
                     duration: '2h', rentalType: 'full_kite', rentalFormat: 'half_day', storageDays: 1,
-                    customName: '', unitPrice: 75, dateFrom: '', dateTo: '', qty: 1
+                    packageType: 'chill', // ADDED default package
+                    customName: '', unitPrice: 929, dateFrom: '', dateTo: '', qty: 1
                 });
 
                 const t = (k) => i18n[lang.value][k] || k;
                 const toggleLang = () => lang.value = lang.value === 'en' ? 'fr' : 'en';
 
-                // NEW: Clear All Function
                 const clearAll = () => {
                     if (confirm(lang.value === 'en' ? 'Clear everything?' : 'Tout effacer ?')) {
                         clientName.value = '';
@@ -291,9 +322,10 @@
                         items.value = [];
                         docType.value = 'invoice';
                         form.value = {
-                            type: 'lesson', discipline: 'kitesurf', level: 'beginner', equip: 'included', format: 'semi-private',
+                            type: 'package', discipline: 'kitesurf', level: 'beginner', equip: 'included', format: 'semi-private',
                             duration: '2h', rentalType: 'full_kite', rentalFormat: 'half_day', storageDays: 1,
-                            customName: '', unitPrice: 75, dateFrom: '', dateTo: '', qty: 1
+                            packageType: 'chill', // ADDED default package reset
+                            customName: '', unitPrice: 929, dateFrom: '', dateTo: '', qty: 1
                         };
                     }
                 };
@@ -302,13 +334,15 @@
                     const f = form.value;
                     if (f.type === 'storage') f.unitPrice = pricing.storage[f.storageDays] || 0;
                     else if (f.type === 'rental') f.unitPrice = pricing.rental[f.rentalType]?.[f.rentalFormat] || 0;
+                    else if (f.type === 'package') f.unitPrice = pricing.package[f.packageType] || 0; // ADDED package price logic
                     else if (f.type === 'lesson') {
                         const key = `${f.level}_${f.equip}_${f.format.replace('-','_')}`;
                         f.unitPrice = pricing.lesson[key]?.[f.duration] || 0;
                     }
                 };
 
-                watch(() => [form.value.type, form.value.level, form.value.equip, form.value.format, form.value.duration, form.value.rentalType, form.value.rentalFormat, form.value.storageDays, form.value.discipline], () => {
+                // ADDED packageType to the watch dependencies
+                watch(() => [form.value.type, form.value.level, form.value.equip, form.value.format, form.value.duration, form.value.rentalType, form.value.rentalFormat, form.value.storageDays, form.value.discipline, form.value.packageType], () => {
                     if(form.value.type === 'lesson') form.value.qty = 1;
                     updatePrice();
                 });
@@ -321,6 +355,7 @@
 
                 const buildItemTitle = (i) => {
                     if (i.type === 'lesson') return t('lessonTitle_' + i.discipline);
+                    if (i.type === 'package') return t('pkg_' + i.packageType); // ADDED
                     return t(i.type);
                 };
 
@@ -328,6 +363,7 @@
                     if (i.type === 'custom') return i.customName;
                     if (i.type === 'storage') return `${i.storageDays} ${t('days')}`;
                     if (i.type === 'rental') return `${t(i.rentalType)} (${t(i.rentalFormat)})`;
+                    if (i.type === 'package') return t('desc_pkg_' + i.packageType); // ADDED
                     return `${t(i.level)} | ${t('equip_' + i.equip)} | ${t(i.format)} | ${t(i.duration)}`;
                 };
 
@@ -402,7 +438,6 @@
                     fixPageBreaks(clone);
                     await new Promise(r => setTimeout(r, 100));
                     
-                    // Use docType in filename
                     const prefix = docType.value === 'quote' ? 'DEVIS' : 'FACTURE';
                     const opt = {
                         margin: PDF_MARGIN,
