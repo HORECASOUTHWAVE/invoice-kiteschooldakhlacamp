@@ -73,26 +73,26 @@
                 </div>
 
                 <div v-if="form.type === 'package'" class="space-y-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div class="md:col-span-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2">
                             <label class="text-xs text-slate-500">{{ t('packageType') }}</label>
                             <select v-model="form.packageType" class="w-full text-sm border p-2 rounded bg-white">
                                 <option value="chill">{{ t('pkg_chill') }}</option>
                                 <option value="intense">{{ t('pkg_intense') }}</option>
                             </select>
                         </div>
-                        <div class="md:col-span-1.5">
-                            <label class="text-xs text-slate-500">{{ t('format') }}</label>
-                            <select v-model="form.pkgFormat" class="w-full text-sm border p-2 rounded bg-white">
-                                <option value="private">{{ t('private') }}</option>
-                                <option value="semiPrivate">{{ t('semiPrivate') }}</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-1.5">
+                        <div>
                             <label class="text-xs text-slate-500">{{ t('occupancy') }}</label>
-                            <select v-model="form.pkgOccupancy" class="w-full text-sm border p-2 rounded bg-white">
+                            <select v-model="form.packageOccupancy" class="w-full text-sm border p-2 rounded bg-white">
                                 <option value="solo">{{ t('solo') }}</option>
                                 <option value="duo">{{ t('duo') }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500">{{ t('format') }}</label>
+                            <select v-model="form.packageFormat" class="w-full text-sm border p-2 rounded bg-white">
+                                <option value="private">{{ t('private') }}</option>
+                                <option value="semi-private">{{ t('semiPrivate') }}</option>
                             </select>
                         </div>
                     </div>
@@ -123,7 +123,7 @@
                 <div class="grid grid-cols-2 gap-4 pt-2">
                     <div><label class="text-xs text-slate-500">{{ t('dateFrom') }}</label><input type="date" v-model="form.dateFrom" class="w-full text-sm border p-2 rounded"></div>
                     <div><label class="text-xs text-slate-500">{{ t('dateTo') }}</label><input type="date" v-model="form.dateTo" class="w-full text-sm border p-2 rounded"></div>
-                    <div><label class="text-xs font-bold" :class="form.type === 'lesson' ? 'text-slate-400' : 'text-blue-600'">{{ t('qty') }}</label><input type="number" v-model.number="form.qty" min="1" :disabled="form.type === 'lesson'" class="w-full text-sm border p-2 rounded" :class="form.type === 'lesson' ? 'bg-slate-100' : 'bg-blue-50'"></div>
+                    <div><label class="text-xs font-bold" :class="(form.type === 'lesson' || form.type === 'package') ? 'text-slate-400' : 'text-blue-600'">{{ t('qty') }}</label><input type="number" v-model.number="form.qty" min="1" :disabled="form.type === 'lesson' || form.type === 'package'" class="w-full text-sm border p-2 rounded" :class="(form.type === 'lesson' || form.type === 'package') ? 'bg-slate-100' : 'bg-blue-50'"></div>
                     <div><label class="text-xs font-bold text-blue-600">{{ t('unitPrice') }} (€)</label><input type="number" v-model.number="form.unitPrice" class="w-full text-sm border p-2 rounded bg-blue-50"></div>
                 </div>
                 <button @click="addItem" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow transition">{{ t('addToList') }}</button>
@@ -211,8 +211,8 @@
 
         const pricing = {
             package: {
-                chill: 929,
-                intense: 1317
+                chill: { solo: 929, duo: 1858 },
+                intense: { solo: 1317, duo: 2634 }
             },
             lesson: {
                 beginner_included_semi_private: { '2h': 75, '4h': 155, '6h': 225, '8h': 298, '10h': 370, '12h': 425, 'extra_1h': 30, 'extra_2h': 60 },
@@ -225,4 +225,248 @@
                 intermediate_without_private: { '2h': 93, '4h': 189, '6h': 286, '8h': 374, '10h': 439, '12h': 519, 'extra_1h': 37, 'extra_2h': 74 },
             },
             rental: {
-                full_kite: { half_day: 60, full_day: 80 }, full_wing: { half
+                full_kite: { half_day: 60, full_day: 80 }, full_wing: { half_day: 70, full_day: 95 },
+                kite_bar: { half_day: 55, full_day: 60 }, twintip: { half_day: 25, full_day: 30 },
+                wing: { half_day: 50, full_day: 60 }, wing_board: { half_day: 40, full_day: 55 },
+                surf: { half_day: 30, full_day: 45 }, harness: { half_day: 10, full_day: 15 },
+                vest: { half_day: 5, full_day: 10 }, helmet: { half_day: 5, full_day: 10 }, leash: { half_day: 5, full_day: 5 }
+            },
+            storage: { 1:10, 2:20, 3:30, 4:40, 5:50, 6:60, 7:70, 8:78, 9:86, 10:94, 11:102, 12:110, 13:118, 14:126 }
+        };
+
+        const i18n = {
+            en: {
+                appTitle: 'Invoice Generator', switchTo: 'Passer en Français', documentType: 'Document Type', 
+                invoice: 'INVOICE', quote: 'QUOTE', clientInfo: 'Client Info', clientName: 'Client Name',
+                invoiceNum: 'N°', docNumber: 'N°', invoiceDate: 'Date', conversionRate: 'MAD Rate', addItem: 'Add Service', type: 'Type',
+                lesson: 'Lesson', rental: 'Rental', storage: 'Storage', custom: 'Custom', level: 'Level', beginner: 'Beginner', intermediate: 'Intermediate',
+                equipment: 'Equipment', included: 'Included', without: 'No Equipment', format: 'Format', semiPrivate: 'Semi-private', private: 'Private',
+                duration: 'Duration', rentalType: 'Equipment', rentalFormat: 'Period', halfDay: 'Half Day', fullDay: 'Full Day',
+                storageDays: 'Days', days: 'Days', customDesc: 'Description', unitPrice: 'Unit Price', qty: 'Qty',
+                dateFrom: 'From', dateTo: 'To', addToList: 'Add to Invoice', date: 'Date', billTo: 'Bill To',
+                itemDesc: 'Description', total: 'Total', subtotal: 'Subtotal', emptyInvoice: 'No items.', dates: 'Dates',
+                generatePdf: 'Download PDF', footerMsg: 'Thank you for choosing Dakhla Camp!',
+                clearAll: '🗑️ Clear Everything',
+                full_kite: 'Kitesurf Set', full_wing: 'Wingfoil Set', kite_bar: 'Kite & Bar', twintip: 'Twintip Board',
+                wing: 'Wing', wing_board: 'Wingfoil Board', surf: 'Surfboard', harness: 'Harness', vest: 'Vest',
+                helmet: 'Helmet', leash: 'Leash', half_day: 'Half Day', full_day: 'Full Day',
+                '2h':'2h','4h':'4h','6h':'6h','8h':'8h','10h':'10h','12h':'12h','extra_1h':'+1h','extra_2h':'+2h',
+                discipline: 'Discipline',
+                kitesurf: 'Kitesurf',
+                wingfoil: 'Wingfoil',
+                kitefoil: 'Kitefoil',
+                surfLesson: 'Surf',
+                lessonTitle_kitesurf: 'Kitesurf Lesson',
+                lessonTitle_wingfoil: 'Wingfoil Lesson',
+                lessonTitle_kitefoil: 'Kitefoil Lesson',
+                lessonTitle_surf: 'Surf Lesson',
+                equip_included: 'Equipment Included',
+                equip_without: 'Without Equipment',
+                package: 'Package', packageType: 'Package Option', occupancy: 'Occupancy', solo: 'Solo (1 Person)', duo: 'Duo (2 People)',
+                pkg_chill: 'Accommodation + Kitesurf - Chill',
+                pkg_intense: 'Accommodation + Kitesurf - Intense',
+                desc_pkg_chill: '7 Nights, Full Board, premium equipment, 10h coaching.',
+                desc_pkg_intense: '7 Nights, Full Board, premium equipment, 20h coaching.',
+            },
+            fr: {
+                appTitle: 'Facturation', switchTo: 'English', documentType: 'Type de Document',
+                invoice: 'FACTURE', quote: 'DEVIS', clientInfo: 'Client', clientName: 'Nom', invoiceNum: 'N°', docNumber: 'N°', invoiceDate: 'Date',
+                conversionRate: 'Taux MAD', addItem: 'Ajouter', type: 'Type', lesson: 'Cours', rental: 'Location', storage: 'Stockage',
+                custom: 'Divers', level: 'Niveau', beginner: 'Débutant', intermediate: 'Intermédiaire', equipment: 'Matériel',
+                included: 'Inclus', without: 'Sans Matériel', format: 'Format', semiPrivate: 'Semi-privé', private: 'Privé',
+                duration: 'Durée', rentalType: 'Équipement', rentalFormat: 'Durée', halfDay: 'Demi-journée', fullDay: 'Journée',
+                storageDays: 'Jours', days: 'Jours', customDesc: 'Description', unitPrice: 'Prix Unit.', qty: 'Qté',
+                dateFrom: 'Début', dateTo: 'Fin', addToList: 'Ajouter', date: 'Date', billTo: 'Facturé à',
+                itemDesc: 'Description', total: 'Total', subtotal: 'Sous-total', emptyInvoice: 'Vide.', dates: 'Dates',
+                generatePdf: 'Télécharger PDF', footerMsg: 'Merci d\'avoir choisi Dakhla Camp !',
+                clearAll: '🗑️ Tout Effacer',
+                full_kite: 'Set Kitesurf', full_wing: 'Set Wingfoil', kite_bar: 'Ailes & Barres', twintip: 'Planches Twintip', wing: 'Ailes Wing',
+                wing_board: 'Planches Wing', surf: 'Surf', harness: 'Harnais', vest: 'Gilet', helmet: 'Casque', leash: 'Leash',
+                half_day: 'Demi-journée', full_day: 'Journée',
+                '2h':'2h','4h':'4h','6h':'6h','8h':'8h','10h':'10h','12h':'12h','extra_1h':'+1h','extra_2h':'+2h',
+                discipline: 'Discipline',
+                kitesurf: 'Kitesurf',
+                wingfoil: 'Wingfoil',
+                kitefoil: 'Kitefoil',
+                surfLesson: 'Surf',
+                lessonTitle_kitesurf: 'Cours de Kitesurf',
+                lessonTitle_wingfoil: 'Cours de Wingfoil',
+                lessonTitle_kitefoil: 'Cours de Kitefoil',
+                lessonTitle_surf: 'Cours de Surf',
+                equip_included: 'Équipement Inclus',
+                equip_without: 'Sans Équipement',
+                package: 'Pack', packageType: 'Option du Pack', occupancy: 'Occupation', solo: 'Solo (1 Personne)', duo: 'Duo (2 Personnes)',
+                pkg_chill: 'Hébergement + Kitesurf - Chill',
+                pkg_intense: 'Hébergement + Kitesurf - Intense',
+                desc_pkg_chill: '7 Nuits, Pension complète, matériel premium, 10h coaching.',
+                desc_pkg_intense: '7 Nuits, Pension complète, matériel premium, 20h coaching.',
+            }
+        };
+
+        createApp({
+            setup() {
+                const lang = ref('en');
+                const docType = ref('invoice'); 
+                const isGenerating = ref(false);
+                const clientName = ref('');
+                const invoiceDate = ref(new Date().toISOString().split('T')[0]);
+                const invoiceNumber = ref(`INV-${Date.now().toString().slice(-6)}`);
+                const conversionRate = ref(10.7);
+                const items = ref([]);
+                const lessonDurations = ['2h','4h','6h','8h','10h','12h','extra_1h','extra_2h'];
+
+                const form = ref({
+                    type: 'package',
+                    discipline: 'kitesurf', level: 'beginner', equip: 'included', format: 'semi-private',
+                    duration: '2h', rentalType: 'full_kite', rentalFormat: 'half_day', storageDays: 1,
+                    packageType: 'chill', packageOccupancy: 'solo', packageFormat: 'private', 
+                    customName: '', unitPrice: 929, dateFrom: '', dateTo: '', qty: 1
+                });
+
+                const t = (k) => i18n[lang.value][k] || k;
+                const toggleLang = () => lang.value = lang.value === 'en' ? 'fr' : 'en';
+
+                const clearAll = () => {
+                    if (confirm(lang.value === 'en' ? 'Clear everything?' : 'Tout effacer ?')) {
+                        clientName.value = '';
+                        invoiceDate.value = new Date().toISOString().split('T')[0];
+                        invoiceNumber.value = `INV-${Date.now().toString().slice(-6)}`;
+                        conversionRate.value = 10.7;
+                        items.value = [];
+                        docType.value = 'invoice';
+                        form.value = {
+                            type: 'package', discipline: 'kitesurf', level: 'beginner', equip: 'included', format: 'semi-private',
+                            duration: '2h', rentalType: 'full_kite', rentalFormat: 'half_day', storageDays: 1,
+                            packageType: 'chill', packageOccupancy: 'solo', packageFormat: 'private',
+                            customName: '', unitPrice: 929, dateFrom: '', dateTo: '', qty: 1
+                        };
+                    }
+                };
+
+                const updatePrice = () => {
+                    const f = form.value;
+                    if (f.type === 'storage') f.unitPrice = pricing.storage[f.storageDays] || 0;
+                    else if (f.type === 'rental') f.unitPrice = pricing.rental[f.rentalType]?.[f.rentalFormat] || 0;
+                    else if (f.type === 'package') f.unitPrice = pricing.package[f.packageType]?.[f.packageOccupancy] || 0;
+                    else if (f.type === 'lesson') {
+                        const key = `${f.level}_${f.equip}_${f.format.replace('-','_')}`;
+                        f.unitPrice = pricing.lesson[key]?.[f.duration] || 0;
+                    }
+                };
+
+                watch(() => [form.value.type, form.value.level, form.value.equip, form.value.format, form.value.duration, form.value.rentalType, form.value.rentalFormat, form.value.storageDays, form.value.discipline, form.value.packageType, form.value.packageOccupancy], () => {
+                    if(form.value.type === 'lesson' || form.value.type === 'package') form.value.qty = 1;
+                    updatePrice();
+                });
+
+                const addItem = () => {
+                    items.value.push({ ...form.value, total: form.value.unitPrice * form.value.qty });
+                    form.value.dateFrom = ''; form.value.dateTo = ''; form.value.customName = '';
+                };
+                const removeItem = (i) => items.value.splice(i, 1);
+
+                const buildItemTitle = (i) => {
+                    if (i.type === 'lesson') return t('lessonTitle_' + i.discipline);
+                    if (i.type === 'package') return t('pkg_' + i.packageType);
+                    return t(i.type);
+                };
+
+                const buildItemDescription = (i) => {
+                    if (i.type === 'custom') return i.customName;
+                    if (i.type === 'storage') return `${i.storageDays} ${t('days')}`;
+                    if (i.type === 'rental') return `${t(i.rentalType)} (${t(i.rentalFormat)})`;
+                    if (i.type === 'package') return `${t('desc_pkg_' + i.packageType)} | ${t(i.packageOccupancy)} | ${t(i.packageFormat)}`; 
+                    return `${t(i.level)} | ${t('equip_' + i.equip)} | ${t(i.format)} | ${t(i.duration)}`;
+                };
+
+                const subtotal = computed(() => items.value.reduce((a, b) => a + b.total, 0));
+                const grandTotal = computed(() => subtotal.value);
+                const formatCurrency = (v) => new Intl.NumberFormat(lang.value==='fr'?'fr-FR':'en-US',{style:'currency',currency:'EUR'}).format(v);
+                const formatMAD = (v) => new Intl.NumberFormat(lang.value==='fr'?'fr-FR':'en-US',{style:'currency',currency:'MAD'}).format(v);
+                const formatDate = (d) => d ? new Date(d).toLocaleDateString(lang.value==='fr'?'fr-FR':'en-US',{day:'numeric',month:'short',year:'numeric'}) : '';
+
+                const PDF_MARGIN = [10, 10, 10, 10];
+                const SOURCE_WIDTH = 800;
+
+                function getPageHeightPx() {
+                    const usableW = 210 - PDF_MARGIN[1] - PDF_MARGIN[3];
+                    const usableH = 297 - PDF_MARGIN[0] - PDF_MARGIN[2];
+                    const pxPerMm = usableW / SOURCE_WIDTH;
+                    return Math.floor(usableH / pxPerMm);
+                }
+
+                function fixPageBreaks(container) {
+                    const PAGE_H = getPageHeightPx();
+                    let safety = 0;
+                    while (safety < 100) {
+                        safety++;
+                        const containerRect = container.getBoundingClientRect();
+                        const elements = container.querySelectorAll('tr, .break-inside-avoid');
+                        let fixed = false;
+                        for (const el of elements) {
+                            if (el.dataset.pbSpacer) continue;
+                            const rect = el.getBoundingClientRect();
+                            const top = rect.top - containerRect.top;
+                            const bot = top + rect.height;
+                            if (rect.height >= PAGE_H) continue;
+                            const pageBottom = (Math.floor(top / PAGE_H) + 1) * PAGE_H;
+                            if (top < pageBottom && bot > pageBottom) {
+                                const gap = Math.ceil(pageBottom - top) + 4;
+                                if (el.tagName === 'TR') {
+                                    const spacerRow = document.createElement('tr');
+                                    const spacerCell = document.createElement('td');
+                                    spacerCell.setAttribute('colspan', '99');
+                                    spacerCell.style.cssText = `height:${gap}px;padding:0;border:none;line-height:0;font-size:0;`;
+                                    spacerRow.style.cssText = 'border:none;';
+                                    spacerRow.dataset.pbSpacer = '1';
+                                    spacerRow.appendChild(spacerCell);
+                                    el.parentNode.insertBefore(spacerRow, el);
+                                } else {
+                                    const spacer = document.createElement('div');
+                                    spacer.style.cssText = `height:${gap}px;`;
+                                    spacer.dataset.pbSpacer = '1';
+                                    el.parentNode.insertBefore(spacer, el);
+                                }
+                                fixed = true;
+                                break;
+                            }
+                        }
+                        if (!fixed) break;
+                    }
+                }
+
+                const generatePDF = async () => {
+                    if (isGenerating.value) return;
+                    isGenerating.value = true;
+                    const source = document.getElementById('invoice-capture');
+                    const clone = source.cloneNode(true);
+                    clone.querySelectorAll('.no-print').forEach(el => el.remove());
+                    const wrapper = document.createElement('div');
+                    wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;z-index:-1;';
+                    clone.style.cssText = 'width:800px;min-width:800px;max-width:800px;padding:40px 50px;background:white;box-shadow:none;margin:0;box-sizing:border-box;';
+                    wrapper.appendChild(clone);
+                    document.body.appendChild(wrapper);
+                    await new Promise(r => setTimeout(r, 300));
+                    fixPageBreaks(clone);
+                    await new Promise(r => setTimeout(r, 100));
+                    
+                    const prefix = docType.value === 'quote' ? 'DEVIS' : 'FACTURE';
+                    const opt = {
+                        margin: PDF_MARGIN,
+                        filename: `DakhlaCamp_${prefix}_${invoiceNumber.value}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, width: SOURCE_WIDTH, scrollX: 0, scrollY: 0 },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak: { mode: [] }
+                    };
+                    try { await html2pdf().set(opt).from(clone).save(); }
+                    catch (e) { console.error('PDF error:', e); }
+                    finally { document.body.removeChild(wrapper); isGenerating.value = false; }
+                };
+
+                return { lang, docType, isGenerating, clientName, invoiceDate, invoiceNumber, conversionRate, items, form, lessonDurations, pricing, t, toggleLang, addItem, removeItem, clearAll, buildItemTitle, buildItemDescription, subtotal, grandTotal, formatCurrency, formatMAD, formatDate, generatePDF };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
