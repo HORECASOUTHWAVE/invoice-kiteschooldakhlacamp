@@ -205,11 +205,11 @@
                             <div class="flex justify-between text-sm font-bold border-2 border-black p-2 bg-gray-100 mt-2"><span>Total (MAD):</span><span>{{ formatMAD(grandTotal * conversionRate) }}</span></div>
                             
                             <template v-if="hasCommission">
-                                <div class="flex justify-between text-base font-bold text-orange-700 mt-6 border-t border-gray-300 pt-4">
+                                <div class="flex justify-between text-sm font-bold text-orange-700 mt-4 border-t border-gray-300 pt-3">
                                     <span>{{ t('commission') }} <span v-if="commissionName">- {{ commissionName }}</span> ({{ commissionRate }}%):</span>
                                     <span>-{{ formatMAD(commissionAmount * conversionRate) }}</span>
                                 </div>
-                                <div class="flex justify-between items-center text-3xl md:text-4xl font-black border-4 border-green-600 bg-green-50 p-5 mt-4 text-green-800 uppercase tracking-wide rounded shadow-sm">
+                                <div class="flex justify-between items-center text-xl md:text-2xl font-black border-2 border-green-600 bg-green-50 p-3 mt-3 text-green-800 uppercase tracking-wide rounded">
                                     <span>{{ t('netToPay') }}:</span>
                                     <span>{{ formatMAD(netTotal * conversionRate) }}</span>
                                 </div>
